@@ -1,0 +1,33 @@
+# Node modules
+node_modules/
+.DS_Store
+# Logs
+logs
+*.log
+npm-debug.log*
+**/.DS_Store
+# Environment variables
+.env.*
+
+# Build output
+build/
+dist/
+
+# React specific
+*.cache
+*.eslintcache
+
+# Temporary files
+.DS_Store
+*.tgz
+*.tmp
+*.temp
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Miscellaneous
+*.swp
+*.swo
+*.orig
+

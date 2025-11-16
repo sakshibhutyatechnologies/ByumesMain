@@ -1,0 +1,100 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.js",
+      "use": "@vercel/node"
+    },
+    { "src": "public/fonts/*", "use": "@vercel/static" }
+  ],
+  "routes": [
+    {
+      "src": "/orders",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/orders/(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/users",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/products",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/instructions",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/masterInstructions",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/reports",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/equipmentTypes",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/equipmentActivities",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/masterEquipmentActivities",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/eLogReports",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/equipments",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/eLogOrders",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/eLogProducts",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/docToJson",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/docToJson/(.*)",
+      "dest": "/app.js"
+    },    
+     {
+      "src": "/docToJsonForElog",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/docToJsonForElog/(.*)",
+      "dest": "/app.js"
+    },  
+    {
+      "src": "/(.*)",
+      "dest": "/app.js"
+    },
+    {
+      "src": "/fonts/(.*)",
+      "dest": "/public/fonts/$1"
+    },
+    {
+      "src": "/authentication",
+      "dest": "/app.js"
+    },
+    {
+      "src":"/companies",
+      "dest":"/app.js"
+    }
+  ]
+}
