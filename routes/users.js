@@ -1,15 +1,16 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+// Ensure this matches your model export
 const { User, ROLES, LANGUAGES, TIMEZONES } = require('../models/userModel');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret';
-
-// Pull bcrypt cost factor from env (default 10)
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS, 10) || 10;
 
-// Expose ENUMS via API
+// ----------------------------------------------------------------
+// PUBLIC / ENUM ROUTES
+// ----------------------------------------------------------------
 router.get('/enums', (req, res) => {
   res.json({
     roles: ROLES,
@@ -18,55 +19,37 @@ router.get('/enums', (req, res) => {
   });
 });
 
-// REGISTER NEW USER (Admin only)
+// ----------------------------------------------------------------
+// AUTHENTICATION ROUTES
+// ----------------------------------------------------------------
+
+// REGISTER NEW USER (Restored your Admin Check)
 router.post('/register', async (req, res) => {
   const {
-    loginId,
-    full_name,
-    email,
-    password,
-    role,
-    language,
-    timezone,
-    companyId,
-    status = 'active',
-    profile_picture_url = '',
-    requesterRole
+    loginId, full_name, email, password, role, language, timezone, 
+    companyId, status = 'active', profile_picture_url = '', requesterRole
   } = req.body;
 
+  // --- RESTORED: Security Check ---
   if (requesterRole !== 'Admin') {
     return res.status(403).json({ message: 'Only Admin can create users' });
   }
 
   try {
-    // Ensure uniqueness
     const existingUser = await User.findOne({ $or: [{ email }, { loginId }] });
     if (existingUser) {
       return res.status(400).json({ message: 'User with this email or loginId already exists' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create new user
     const user = new User({
-      loginId,
-      full_name,
-      email,
-      password: hashedPassword,
-      role,
-      language,
-      timezone,
-      companyId: Number(companyId),
-      status,
-      profile_picture_url,
-      last_login_at: null,
-      loginTime: null,
-      logoutTime: null
+      loginId, full_name, email, password: hashedPassword, role, language, timezone,
+      companyId: Number(companyId), status, profile_picture_url,
+      last_login_at: null, loginTime: null, logoutTime: null
     });
 
     await user.save();
-
     res.status(201).json({ message: 'User created successfully', user });
   } catch (err) {
     console.error('Register error:', err);
@@ -121,7 +104,6 @@ router.post('/login', async (req, res) => {
 // LOGOUT
 router.post('/logout', async (req, res) => {
   const { email } = req.body;
-
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -135,11 +117,16 @@ router.post('/logout', async (req, res) => {
   }
 });
 
+// ----------------------------------------------------------------
+// PASSWORD MANAGEMENT (Restored)
+// ----------------------------------------------------------------
+
 // UPDATE USER PASSWORD (Admin only)
 router.put('/password/:userId', async (req, res) => {
   const { userId } = req.params;
   const { newPassword, requesterRole } = req.body;
 
+  // --- RESTORED: Security Check ---
   if (requesterRole !== 'Admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -161,18 +148,16 @@ router.put('/password/:userId', async (req, res) => {
   }
 });
 
+// CHANGE OWN PASSWORD
 router.put('/change-password', async (req, res) => {
   const { loginId, oldPassword, newPassword } = req.body;
   try {
-    // pull the Mongo _id straight from the JWT
     const user = await User.findOne({ loginId }).select('+password');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // verify the old password
     const match = await bcrypt.compare(oldPassword, user.password);
     if (!match) return res.status(400).json({ message: 'Current password is incorrect' });
 
-    // hash & save new password
     user.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await user.save();
 
@@ -182,6 +167,10 @@ router.put('/change-password', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// ----------------------------------------------------------------
+// USER MANAGEMENT & DROPDOWN LIST
+// ----------------------------------------------------------------
 
 // UPDATE USER DETAILS
 router.put('/:id', async (req, res) => {
@@ -195,10 +184,14 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// GET ALL USERS
+// GET ALL USERS (Updated to support Dropdown List)
 router.get('/', async (req, res) => {
   try {
-    const users = await User.find().populate('companyId', 'name');
+    // We simply added sort logic here, but kept your original structure
+    const users = await User.find()
+      .populate('companyId', 'name')
+      .sort({ full_name: 1 }); // Added sort so list is alphabetical
+      
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
