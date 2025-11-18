@@ -49,8 +49,9 @@ mongoose.connect(configuration.MONGO_URI, {
     const gifs = require('./routes/gifs');
     const docToJsonRoute = require('./routes/docToJson');
     const docToJsonForElogRoute = require('./routes/docToJsonForElog');
-    const authenticationRoutes = require('./routes/authentication');
+    // const authenticationRoutes = require('./routes/authentication');
     const companies = require('./routes/companies');
+    const { authRouter } = require('./routes/authentication');
 // Use routes
     app.use('/users', userRoutes);
     app.use('/orders', orderRoutes);
@@ -69,9 +70,9 @@ mongoose.connect(configuration.MONGO_URI, {
     app.use('/gifs', gifs);
     app.use('/docToJson', docToJsonRoute);
     app.use('/docToJsonForElog', docToJsonForElogRoute);
-    app.use('/authentication', authenticationRoutes);
+    // app.use('/authentication', authenticationRoutes);
     app.use('/companies', companies);
-
+app.use('/api/auth', authRouter);
 // Start the server
     app.listen(port, () => {
         console.log(`Server is running on port ${port}`);

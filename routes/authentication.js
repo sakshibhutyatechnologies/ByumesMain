@@ -1,78 +1,74 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
+const { User } = require('../models/userModel'); // This import is correct
 
 const router = express.Router();
-
 const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret';
-const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 hour in ms
+
+// --- MIDDLEWARE FUNCTION TO PROTECT ROUTES ---
+const protectRoute = async (req, res, next) => {
+  console.log("\n--- protectRoute: A new request came in. ---");
+  try {
+    // 1. Get token from header
+    const token = req.header('Authorization').replace('Bearer ', '');
+    if (!token) {
+      throw new Error('No token provided');
+    }
+    console.log("--- protectRoute: Token found.");
+
+    // 2. Verify the token
+    const payload = jwt.verify(token, JWT_SECRET);
+    console.log("--- protectRoute: Token is valid. Payload:", payload);
+
+    // 3. Find the user from the token payload (This is correct)
+    const user = await User.findOne({ _id: payload.userId });
+    console.log("--- protectRoute: Database search for user:", user ? user.full_name : "NOT FOUND");
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // 4. Attach user to the request object
+    req.user = user;
+    console.log("--- protectRoute: SUCCESS. Handing off to the main route.");
+    
+    next(); // Proceed to the route handler
+  } catch (error) {
+    console.log("--- protectRoute: FAILED. Sending 401 Error:", error.message);
+    res.status(401).json({ message: 'Please authenticate.', error: error.message });
+  }
+};
 
 // ===================================
-// VALIDATE TOKEN + AUTO REFRESH
+// VALIDATE TOKEN ROUTE (Corrected)
 // ===================================
 router.post('/validate-token', async (req, res) => {
-  const { token } = req.body;
+  const { token } = req.body;
 
-  try {
-    // Step 1: Decode and verify the token
-    const payload = jwt.verify(token, JWT_SECRET);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
 
-    // Step 2: Fetch user to validate jwtVersion
-    const user = await User.findOne({ id: payload.userId }).select('+jwtVersion');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Step 2: Fetch user (Corrected)
+    const user = await User.findOne({ _id: payload.userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Step 3: Reject if version mismatch (i.e., user was forcibly logged out)
-    if (payload.jwtVersion !== user.jwtVersion) {
-      return res.status(401).json({ message: 'Token invalid (version mismatch)' });
-    }
+    // Step 3: jwtVersion check has been REMOVED
 
-    // Step 4: Check if session is expired based on login time
-    const inactiveSince = Date.now() - new Date(user.loginTime).getTime();
-    if (inactiveSince > SESSION_TIMEOUT) {
-      user.logoutTime = new Date();
-      await user.save();
-      return res.status(401).json({ message: 'Session expired' });
-    }
+    // Step 4: Re-issue new token (Corrected)
+    const newToken = jwt.sign(
+      { userId: user._id, role: user.role }, // Removed jwtVersion
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-    // Step 5: Re-issue new token with same jwtVersion
-    const newToken = jwt.sign(
-      { userId: user.id, role: user.role, jwtVersion: user.jwtVersion },
-      JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-
-    res.json({ token: newToken });
-  } catch (err) {
-    // Token is invalid, tampered, or expired
-    res.status(401).json({ message: 'Invalid or expired token' });
-  }
+    res.json({ token: newToken });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
 });
 
-// ===================================
-// CHECK INACTIVITY (used by front-end polling)
-// ===================================
-router.post('/check-inactivity', async (req, res) => {
-  const { email } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Compare loginTime with 1 hour threshold
-    const oneHourAgo = new Date(Date.now() - SESSION_TIMEOUT);
-
-    // If inactive AND not already logged out, mark as logged out
-    if (user.loginTime && user.loginTime < oneHourAgo && !user.logoutTime) {
-      user.logoutTime = new Date();
-      await user.save();
-      return res.status(401).json({ message: 'Session expired due to inactivity' });
-    }
-
-    res.status(200).json({ message: 'Session active' });
-  } catch (error) {
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-module.exports = router;
+// --- UPDATED EXPORT ---
+module.exports = {
+  authRouter: router,
+  protectRoute: protectRoute
+};
