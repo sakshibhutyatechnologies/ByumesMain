@@ -22,7 +22,7 @@ app.use(cors({
 }));
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-
+app.use('/uploads', express.static('uploads'));
 // Connect to MongoDB
 mongoose.connect(configuration.MONGO_URI, {
     useNewUrlParser: true,
@@ -51,7 +51,7 @@ mongoose.connect(configuration.MONGO_URI, {
     const docToJsonForElogRoute = require('./routes/docToJsonForElog');
     // const authenticationRoutes = require('./routes/authentication');
     const companies = require('./routes/companies');
-    const { authRouter } = require('./routes/authentication');
+   const { authRouter } = require('./routes/authentication');
 // Use routes
     app.use('/users', userRoutes);
     app.use('/orders', orderRoutes);

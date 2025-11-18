@@ -1,20 +1,16 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
-// Define the schema for an individual approver
 const ApproverSchema = new mongoose.Schema({
-  user_id: {
-    type: String, // This should reference the _id from your User model
-    ref: 'User',
-    required: true
-  },
-  username: {
-    type: String,
-    required: true
-  }
-}, { _id: false }); // Don't create a separate _id for each approver object
+  user_id: { type: String, required: true },
+  username: { type: String, required: true }
+}, { _id: false });
 
-// Your original master instruction schema with the new fields added
+const ReviewerSchema = new mongoose.Schema({
+  user_id: { type: String, required: true },
+  username: { type: String, required: true }
+}, { _id: false });
+
 const masterInstructionSchema = new mongoose.Schema({
   _id: { type: Number },
   product_name: { type: String, required: true },
@@ -52,13 +48,26 @@ const masterInstructionSchema = new mongoose.Schema({
       has_placeholder: { type: Boolean, default: false }
     }
   ],
-  // --- NEW FIELDS FOR APPROVAL WORKFLOW ---
+  // --- UPDATED WORKFLOW FIELDS ---
   status: {
     type: String,
-    enum: ['pending', 'approved'],
-    default: 'pending' // New instructions will be 'pending'
+    enum: ['Created', 'Under Review', 'Pending for approval', 'Approved'],
+    default: 'Created'
   },
-  approvers: [ApproverSchema] // Array of selected approvers
+  reviewer: {
+    type: ReviewerSchema,
+    default: null
+  },
+  approvers: [ApproverSchema],
+  original_doc_path: {
+    type: String,
+    required: false
+  },
+  rejection_reason: {
+    type: String,
+    default: null
+  }
+  // --- END OF UPDATED FIELDS ---
 });
 
 masterInstructionSchema.plugin(AutoIncrement, { id: 'master_instruction_seq', inc_field: '_id' });
