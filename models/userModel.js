@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
-const ROLES = ['Admin', 'Supervisor', 'Operator', 'QA'];
+const ROLES = ['Admin', 'Supervisor', 'Operator', 'QA', 'Approver', 'Reviewer'];
 const LANGUAGES = ['en', 'fr', 'es', 'de', 'hi'];
 const TIMEZONES = [
   'UTC',

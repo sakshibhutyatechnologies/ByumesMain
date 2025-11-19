@@ -70,7 +70,7 @@ mongoose.connect(configuration.MONGO_URI, {
     app.use('/gifs', gifs);
     app.use('/docToJson', docToJsonRoute);
     app.use('/docToJsonForElog', docToJsonForElogRoute);
-    // app.use('/authentication', authenticationRoutes);
+    
     app.use('/companies', companies);
 app.use('/api/auth', authRouter);
 // Start the server
