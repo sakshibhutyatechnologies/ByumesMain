@@ -3,21 +3,38 @@ const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const ApproverSchema = new mongoose.Schema({
   user_id: { type: String, required: true },
-  username: { type: String, required: true }
+  username: { type: String, required: true },
+  // --- ADDED THIS ---
+  has_approved: { type: Boolean, default: false }
 }, { _id: false });
 
 const ReviewerSchema = new mongoose.Schema({
   user_id: { type: String, required: true },
-  username: { type: String, required: true }
+  username: { type: String, required: true },
+  // --- ADDED THIS ---
+  has_reviewed: { type: Boolean, default: false }
 }, { _id: false });
 
-// --- NEW: Schema to store old versions ---
+
+
+
+const CommentSchema = new mongoose.Schema({
+  pageIndex: Number, 
+  comment: String,
+  user: String, 
+  date: { type: Date, default: Date.now }
+}, { _id: false });
+
 const HistorySchema = new mongoose.Schema({
   version: Number,
   doc_path: String,
-  rejection_reason: String,
-  rejected_by: String,
-  rejected_at: Date,
+  rejection_info: {
+    reason: String,
+    rejected_by: String,
+    rejected_at: Date
+  },
+  
+  comments: [CommentSchema],
   archived_at: { type: Date, default: Date.now }
 }, { _id: false });
 
@@ -32,7 +49,6 @@ const masterInstructionSchema = new mongoose.Schema({
     es: { type: String }
   },
   instructions: [ 
-    // ... (your instructions schema) ...
     {
       step: { type: Number, required: true },
       instruction: {
@@ -73,10 +89,9 @@ const masterInstructionSchema = new mongoose.Schema({
     rejected_at: Date
   },
   review_note: { type: String, default: '' },
-
-  // --- NEW FIELDS FOR VERSIONING ---
   version: { type: Number, default: 1 },
-  history: [HistorySchema] 
+  history: [HistorySchema],
+  comments: [CommentSchema] 
 });
 
 masterInstructionSchema.plugin(AutoIncrement, { id: 'master_instruction_seq', inc_field: '_id' });
