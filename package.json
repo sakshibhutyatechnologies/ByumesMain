@@ -19,6 +19,7 @@
     "bcrypt": "^5.1.1",
     "buymes-api": "file:",
     "cors": "^2.8.5",
+    "docxtemplater": "^3.67.6",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
@@ -29,6 +30,7 @@
     "pdfkit": "^0.15.0",
     "pdfkit-table": "^0.1.99",
     "pdfmake": "^0.2.11",
+    "pizzip": "^3.2.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

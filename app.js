@@ -1,5 +1,5 @@
 require('dotenv').config({ path: `.env.${process.env.APP_ENV || 'development'}` });
-
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -22,7 +22,7 @@ app.use(cors({
 }));
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Connect to MongoDB
 mongoose.connect(configuration.MONGO_URI, {
     useNewUrlParser: true,

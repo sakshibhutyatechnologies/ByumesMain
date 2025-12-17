@@ -5,6 +5,9 @@ const { User } = require("../models/userModel");
 const { protectRoute } = require("./authentication");
 const multer = require("multer");
 const path = require("path");
+const PizZip = require("pizzip");
+const Docxtemplater = require("docxtemplater");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/documents'),
@@ -138,43 +141,99 @@ router.patch("/:id/submit-review", protectRoute, async (req, res) => {
   }
 });
 
-// --- UPDATED: ONE Approver is enough ---
+
+// REPLACE your existing approve route with this:
 router.patch("/:id/approve", protectRoute, async (req, res) => {
   try {
     const userId = req.user._id.toString();
     const instruction = await MasterInstruction.findById(req.params.id);
     if (!instruction) return res.status(404).json({ error: "Not found" });
 
-    // Admin bypass: Admins can force instant approval if they want
-    if (req.user.role === 'Admin') {
+    // --- FIX: Use full_name (with username as backup) ---
+    const currentUserName = req.user.full_name || req.user.username || "Authorized User";
+
+    console.log(`[DEBUG] User '${currentUserName}' (ID: ${userId}) is clicking Approve.`);
+
+    // --- HELPER: Stamp the document ---
+    const performStamping = (namesToPrint) => {
+      try {
+        const approvedDate = new Date().toLocaleDateString();
+        const filePath = path.join(__dirname, '..', instruction.original_doc_path);
+        
+        console.log(`[DEBUG] Stamping File at: ${filePath}`);
+        console.log(`[DEBUG] Printing Names: "${namesToPrint}"`);
+
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, "binary");
+          const zip = new PizZip(content);
+          const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+          // Renders data into the Word file
+          // Ensure your Word doc has {name} inside it
+          doc.render({
+            name: namesToPrint, 
+            date: approvedDate
+          });
+
+          const buf = doc.getZip().generate({ type: "nodebuffer", compression: "DEFLATE" });
+          fs.writeFileSync(filePath, buf);
+          console.log(`[DEBUG] SUCCESS! File saved.`);
+        } else {
+          console.error(`[DEBUG] ERROR: File NOT found at ${filePath}`);
+        }
+      } catch (error) {
+        console.error("[DEBUG] CRITICAL STAMPING ERROR:", error);
+      }
+    };
+    // --------------------------------
+
+    const approver = instruction.approvers.find(a => a.user_id === userId);
+
+    // SCENARIO 1: ADMIN FORCE-APPROVE
+    if (req.user.role === 'Admin' && !approver) {
+         console.log("[DEBUG] Admin Force-Approve triggered.");
          instruction.status = 'Approved';
          instruction.reviewers = []; 
+         
+         // Use the Admin's full_name
+         performStamping(currentUserName); 
+
          await instruction.save();
          return res.json(instruction);
     }
 
-    const approver = instruction.approvers.find(a => a.user_id === userId);
+    // SCENARIO 2: REGULAR APPROVER
     if (!approver) return res.status(403).json({ error: "You are not an approver." });
 
-    // 1. Mark this user as done
     approver.has_approved = true;
 
-    // 2. CHECK: Are ALL approvers done?
+    // Check if everyone has approved
     const allDone = instruction.approvers.every(a => a.has_approved === true);
 
     if (allDone) {
-      instruction.status = 'Approved'; // Move to final stage
-      instruction.reviewers = []; // Cleanup
+      console.log("[DEBUG] All approved. Collecting names...");
+      instruction.status = 'Approved'; 
+      instruction.reviewers = []; 
+
+      // --- FIX: Map over the list to get full_name for everyone ---
+      // We check a.full_name first, then a.username, then a.name
+      const allApproverNames = instruction.approvers
+          .map(a => a.full_name || a.username || a.name || "Unknown")
+          .join(", ");
+      
+      performStamping(allApproverNames);
+
+    } else {
+        console.log("[DEBUG] Waiting for other approvers.");
     }
-    // If not all done, status stays "Pending for approval"
 
     await instruction.save();
     res.json(instruction);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to approve instruction" });
   }
 });
-
 router.patch("/:id/reject", protectRoute, async (req, res) => {
   try {
     const { reason } = req.body;
@@ -191,14 +250,14 @@ router.patch("/:id/reject", protectRoute, async (req, res) => {
       return res.status(403).json({ error: "Permission denied." });
     }
 
-    // Reset everything on reject
+    
     instruction.status = "Created";
     instruction.rejection_info = {
         reason: reason,
         rejected_by: req.user.full_name,
         rejected_at: new Date()
     };
-    // Clear flags and lists so Admin must re-assign
+   
     instruction.reviewers = [];
     instruction.approvers = [];
     
