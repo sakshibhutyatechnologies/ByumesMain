@@ -83,8 +83,10 @@ mongoose.connect(configuration.MONGO_URI, {
         };
 
         // Start the HTTPS server
-        https.createServer(httpsOptions, app).listen(port, '127.0.0.1', () => {
-            console.log(`HTTPS Server is running on https://127.0.0.1:${port}`);
+        https.createServer(httpsOptions, app).listen(port, '0.0.0.0', () => {
+            console.log(`HTTPS Server is running on https://0.0.0.0:${port}`);
+            console.log(`Access locally: https://127.0.0.1:${port}`);
+            console.log(`Access on network: https://<your-ip>:${port}`);
         });
     })
     .catch(err => {
