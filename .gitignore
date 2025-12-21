@@ -9,6 +9,9 @@ npm-debug.log*
 # Environment variables
 .env.*
 
+# SSL Certificates (generated locally)
+certs/
+
 # Build output
 build/
 dist/
