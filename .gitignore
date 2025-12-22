@@ -34,3 +34,7 @@ coverage/
 *.swo
 *.orig
 
+# User uploads (documents, images, etc.)
+uploads/*
+!uploads/.gitkeep
+

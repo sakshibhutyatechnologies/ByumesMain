@@ -17,8 +17,36 @@ console.log(`CORS Origin: ${process.env.CORS_ORIGIN}`);
 console.log(`Mongo URI: ${configuration.MONGO_URI}`);
 
 //app.use(cors());
+// Allow multiple origins for network access
+const allowedOrigins = [
+    'https://127.0.0.1:3000',
+    'https://localhost:3000',
+    `https://${require('os').hostname()}:3000`,
+    // Allow any origin on the same network (for development)
+    /^https:\/\/192\.168\.\d{1,3}\.\d{1,3}:3000$/,
+    /^https:\/\/[a-zA-Z0-9-]+:3000$/  // Allow any hostname
+];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN, // Use the environment variable
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Check if origin matches any allowed pattern
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed instanceof RegExp) {
+                return allowed.test(origin);
+            }
+            return allowed === origin;
+        });
+
+        if (isAllowed) {
+            callback(null, true);
+        } else {
+            console.log(`CORS blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
 }));
@@ -27,8 +55,6 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Connect to MongoDB
 mongoose.connect(configuration.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     maxPoolSize: 10
 })
     .then(() => {

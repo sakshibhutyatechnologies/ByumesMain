@@ -37,25 +37,26 @@ if (!MONGO_URI || !ADMIN_PASSWORD || !OPERATOR_PASSWORD || !QA_PASSWORD) {
 const SALT_ROUNDS = parseInt(BCRYPT_SALT_ROUNDS, 10) || 10;
 
 const defaults = [
-  { 
-    loginId: 'SuperUserAdmin',    
-    full_name: 'Super Buymes Admin', 
-    email: 'admin@example.com',    
-    role: 'Admin',    
-    password: ADMIN_PASSWORD 
+  {
+    loginId: 'SuperUserAdmin',
+    full_name: 'Super Buymes Admin',
+    email: 'admin@example.com',
+    role: 'Admin',
+    password: ADMIN_PASSWORD
   },
-  { 
-    loginId: 'SuperOperator', 
-    full_name: 'Super Buymes Operator',  
-    email: 'operator@example.com', 
-    role: 'Operator', 
-    password: OPERATOR_PASSWORD 
+  {
+    loginId: 'SuperOperator',
+    full_name: 'Super Buymes Operator',
+    email: 'operator@example.com',
+    role: 'Operator',
+    password: OPERATOR_PASSWORD
   },
-  { loginId: 'SuperQA',       
-    full_name: 'Super Buymes QA',        
-    email: 'qa@example.com',       
-    role: 'QA',       
-    password: QA_PASSWORD 
+  {
+    loginId: 'SuperQA',
+    full_name: 'Super Buymes QA',
+    email: 'qa@example.com',
+    role: 'QA',
+    password: QA_PASSWORD
   }
 ];
 
@@ -63,10 +64,7 @@ const defaults = [
 // Ensures default users exist. Skips any that already exist.
 async function seedDefaultUsers() {
   // Connect to MongoDB
-  await mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  });
+  await mongoose.connect(MONGO_URI);
 
   try {
     for (const userDef of defaults) {
