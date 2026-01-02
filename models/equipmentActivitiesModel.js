@@ -1,6 +1,41 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
+// --- 1. Define Sub-Schemas for Workflow ---
+const ApproverSchema = new mongoose.Schema({
+  user_id: { type: String, required: true },
+  username: { type: String, required: true },
+  has_approved: { type: Boolean, default: false },
+  approved_at: { type: Date }
+}, { _id: false });
+
+const ReviewerSchema = new mongoose.Schema({
+  user_id: { type: String, required: true },
+  username: { type: String, required: true },
+  has_reviewed: { type: Boolean, default: false },
+  reviewed_at: { type: Date }
+}, { _id: false });
+
+const CommentSchema = new mongoose.Schema({
+  pageIndex: Number,
+  comment: String,
+  user: String,
+  date: { type: Date, default: Date.now }
+}, { _id: false });
+
+const HistorySchema = new mongoose.Schema({
+  version: Number,
+  doc_path: String,
+  rejection_info: {
+    reason: String,
+    rejected_by: String,
+    rejected_at: Date
+  },
+  comments: [CommentSchema],
+  archived_at: { type: Date, default: Date.now }
+}, { _id: false });
+
+// --- 2. Main Schema ---
 const equipmentActivitiesSchema = new mongoose.Schema({
   _id: { type: Number },
   product_name: { type: String, required: true },
@@ -11,6 +46,32 @@ const equipmentActivitiesSchema = new mongoose.Schema({
     de: { type: String },
     es: { type: String }
   },
+  
+  status: {
+    type: String,
+    enum: ['Created', 'Under Review', 'Pending for approval', 'Approved'],
+    default: 'Created'
+  },
+  created_by: { type: String },
+  source: {
+    type: String,
+    enum: ['ebr', 'elog'],
+    default: 'ebr'
+  },
+  reviewers: [ReviewerSchema],
+  approvers: [ApproverSchema],
+  original_doc_path: { type: String },
+  rejection_info: {
+    reason: String,
+    rejected_by: String,
+    rejected_at: Date
+  },
+  review_note: { type: String, default: '' },
+  version: { type: Number, default: 1 },
+  history: [HistorySchema],
+  comments: [CommentSchema],
+
+  // Execution Fields
   current_step: { type: Number, default: 1 },
   current_qa_step: { type: Number, default: 1 },
   activities: [
@@ -61,11 +122,10 @@ const equipmentActivitiesSchema = new mongoose.Schema({
       ]
     }
   ]
-});
+}, { timestamps: true });
 
 equipmentActivitiesSchema.plugin(AutoIncrement, { id: 'equipment_activities_seq', inc_field: '_id' });
 
 const EquipmentActivities = mongoose.model('EquipmentActivities', equipmentActivitiesSchema);
 
 module.exports = EquipmentActivities;
-

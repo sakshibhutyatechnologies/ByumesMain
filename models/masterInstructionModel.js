@@ -5,23 +5,25 @@ const ApproverSchema = new mongoose.Schema({
   user_id: { type: String, required: true },
   username: { type: String, required: true },
   // --- ADDED THIS ---
-  has_approved: { type: Boolean, default: false }
+  has_approved: { type: Boolean, default: false },
+  approved_at: { type: Date }
 }, { _id: false });
 
 const ReviewerSchema = new mongoose.Schema({
   user_id: { type: String, required: true },
   username: { type: String, required: true },
   // --- ADDED THIS ---
-  has_reviewed: { type: Boolean, default: false }
+  has_reviewed: { type: Boolean, default: false },
+  reviewed_at: { type: Date }
 }, { _id: false });
 
 
 
 
 const CommentSchema = new mongoose.Schema({
-  pageIndex: Number, 
+  pageIndex: Number,
   comment: String,
-  user: String, 
+  user: String,
   date: { type: Date, default: Date.now }
 }, { _id: false });
 
@@ -33,7 +35,7 @@ const HistorySchema = new mongoose.Schema({
     rejected_by: String,
     rejected_at: Date
   },
-  
+
   comments: [CommentSchema],
   archived_at: { type: Date, default: Date.now }
 }, { _id: false });
@@ -48,7 +50,7 @@ const masterInstructionSchema = new mongoose.Schema({
     de: { type: String },
     es: { type: String }
   },
-  instructions: [ 
+  instructions: [
     {
       step: { type: Number, required: true },
       instruction: {
@@ -68,7 +70,7 @@ const masterInstructionSchema = new mongoose.Schema({
           },
           default: { type: String, default: '' },
           value: { type: String, default: '' },
-          options: [String],  
+          options: [String],
           formula: { type: String }
         })
       },
@@ -80,7 +82,8 @@ const masterInstructionSchema = new mongoose.Schema({
     enum: ['Created', 'Under Review', 'Pending for approval', 'Approved'],
     default: 'Created'
   },
-  reviewers: [ReviewerSchema], 
+  created_by: { type: String, required: false }, // User ID who created this document
+  reviewers: [ReviewerSchema],
   approvers: [ApproverSchema],
   original_doc_path: { type: String, required: false },
   rejection_info: {
@@ -91,8 +94,8 @@ const masterInstructionSchema = new mongoose.Schema({
   review_note: { type: String, default: '' },
   version: { type: Number, default: 1 },
   history: [HistorySchema],
-  comments: [CommentSchema] 
-});
+  comments: [CommentSchema]
+}, { timestamps: true }); // Add timestamps for createdAt and updatedAt
 
 masterInstructionSchema.plugin(AutoIncrement, { id: 'master_instruction_seq', inc_field: '_id' });
 

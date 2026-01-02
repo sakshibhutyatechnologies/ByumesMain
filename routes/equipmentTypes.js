@@ -129,4 +129,20 @@ router.get('/:id/equipmentTypeName', async (req, res) => {
     }
 });
 
+// API to fetch a specific equipment type by ID (must be after specific routes)
+router.get('/:id', async (req, res) => {
+    try {
+        const equipmentType = await EquipmentType.findById(req.params.id);
+        
+        if (!equipmentType) {
+            return res.status(404).json({ message: 'Equipment type not found.' });
+        }
+        
+        res.json(equipmentType);
+    } catch (err) {
+        console.error('Error fetching equipment type by ID:', err);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+});
+
 module.exports = router;

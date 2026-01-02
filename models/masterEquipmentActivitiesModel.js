@@ -1,6 +1,41 @@
 const mongoose = require('mongoose');
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
+// --- 1. Define Sub-Schemas for Workflow ---
+const ApproverSchema = new mongoose.Schema({
+  user_id: { type: String, required: true },
+  username: { type: String, required: true },
+  has_approved: { type: Boolean, default: false },
+  approved_at: { type: Date }
+}, { _id: false });
+
+const ReviewerSchema = new mongoose.Schema({
+  user_id: { type: String, required: true },
+  username: { type: String, required: true },
+  has_reviewed: { type: Boolean, default: false },
+  reviewed_at: { type: Date }
+}, { _id: false });
+
+const CommentSchema = new mongoose.Schema({
+  pageIndex: Number,
+  comment: String,
+  user: String,
+  date: { type: Date, default: Date.now }
+}, { _id: false });
+
+const HistorySchema = new mongoose.Schema({
+  version: Number,
+  doc_path: String,
+  rejection_info: {
+    reason: String,
+    rejected_by: String,
+    rejected_at: Date
+  },
+  comments: [CommentSchema],
+  archived_at: { type: Date, default: Date.now }
+}, { _id: false });
+
+// --- 2. Main Schema ---
 const masterEquipmentActivitiesSchema = new mongoose.Schema({
   _id: { type: Number },
   product_name: { type: String, required: true },
@@ -11,6 +46,31 @@ const masterEquipmentActivitiesSchema = new mongoose.Schema({
     de: { type: String },
     es: { type: String }
   },
+  
+  // --- WORKFLOW FIELDS (Added to fix "0 Created" issue) ---
+  status: {
+    type: String,
+    enum: ['Created', 'Under Review', 'Pending for approval', 'Approved'],
+    default: 'Created'
+  },
+  created_by: { type: String }, // <--- Crucial for visibility
+  reviewers: [ReviewerSchema],
+  approvers: [ApproverSchema],
+  original_doc_path: { type: String },
+  rejection_info: {
+    reason: String,
+    rejected_by: String,
+    rejected_at: Date
+  },
+  review_note: { type: String, default: '' },
+  version: { type: Number, default: 1 },
+  history: [HistorySchema],
+  comments: [CommentSchema],
+  // -------------------------------------------------------
+
+  // --- Execution Fields (Kept from your snippet) ---
+  current_step: { type: Number, default: 1 },
+  current_qa_step: { type: Number, default: 1 },
   activities: [
     {
       step: { type: Number, required: true },
@@ -35,13 +95,36 @@ const masterEquipmentActivitiesSchema = new mongoose.Schema({
           formula: { type: String }
         })
       },
-      has_placeholder: { type: Boolean, default: false }
+      has_placeholder: { type: Boolean, default: false },
+      operator_execution: {
+        executed: { type: Boolean, default: false },
+        executed_by: { type: String, default: '' },
+        executed_at: { type: Date }
+      },
+      qa_execution: {
+        qa_executed: { type: Boolean, default: false },
+        qa_executed_by: { type: String, default: '' },
+        qa_executed_at: { type: Date }
+      },
+      skip_step: { 
+        skip_step: { type: Boolean, default: false }, 
+        skip_step_numbers: { type: [Number], default: [] }
+      },
+      comments: [
+        {
+          user: { type: String, required: true },
+          text: { type: String, required: true }, 
+          created_at: { type: Date, default: Date.now } 
+        }
+      ]
     }
   ]
-});
+}, { timestamps: true });
 
+// Plugin for Auto-Increment ID
 masterEquipmentActivitiesSchema.plugin(AutoIncrement, { id: 'master_equipment_activities_seq', inc_field: '_id' });
 
+// Create Model
 const MasterEquipmentActivities = mongoose.model('MasterEquipmentActivities', masterEquipmentActivitiesSchema);
-module.exports = MasterEquipmentActivities;
 
+module.exports = MasterEquipmentActivities;

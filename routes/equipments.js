@@ -2,9 +2,15 @@ const express = require('express');
 const Equipment = require('../models/equipmentModel');
 const router = express.Router();
 const mongoose = require('mongoose');
+const { protectRoute } = require('./authentication');
 
-// Create a new equipment
-router.post('/', async (req, res) => {
+// Create a new equipment (Admin only)
+router.post('/', protectRoute, async (req, res) => {
+    // Check if user is Admin
+    if (req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Only administrators can create equipment.' });
+    }
+
     const { equipment_type_id, equipment_name, equipment_properties } = req.body;
 
     // Validate input
@@ -72,11 +78,35 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// API to fetch all equipment 
+// API to fetch all equipment with equipment type information
 router.get('/', async (req, res) => {
     try {
-        const equipments= await Equipment.find({}); // Fetch all equipment 
-        res.json(equipments); // Return them as JSON
+        const EquipmentType = require('../models/equipmentTypeModel');
+        
+        const equipments = await Equipment.find({}); // Fetch all equipment
+        
+        // Populate equipment type names
+        const equipmentsWithTypes = await Promise.all(
+            equipments.map(async (equipment) => {
+                const equipmentObj = equipment.toObject();
+                
+                // Fetch equipment type if equipment_type_id exists
+                if (equipment.equipment_type_id) {
+                    try {
+                        const equipmentType = await EquipmentType.findById(equipment.equipment_type_id);
+                        if (equipmentType) {
+                            equipmentObj.equipment_type_name = equipmentType.equipment_type_name;
+                        }
+                    } catch (err) {
+                        console.error(`Error fetching equipment type for equipment ${equipment._id}:`, err);
+                    }
+                }
+                
+                return equipmentObj;
+            })
+        );
+        
+        res.json(equipmentsWithTypes); // Return them as JSON with equipment type names
     } catch (err) {
         console.error('Error fetching equipment types:', err);
         res.status(500).json({ message: 'Server error. Please try again later.' });
